@@ -1,11 +1,59 @@
 package com.midhunn.rentvideo.controller;
-import com.midhunn.rentvideo.entity.Video; import com.midhunn.rentvideo.exception.ResourceNotFoundException; import com.midhunn.rentvideo.repository.VideoRepository; import jakarta.validation.Valid; import org.springframework.http.*; import org.springframework.web.bind.annotation.*; import java.util.List;
-@RestController @RequestMapping("/api/videos") public class VideoController {
- private final VideoRepository repo; public VideoController(VideoRepository r){repo=r;}
- @GetMapping("/available") public List<Video> available(){return repo.findByAvailableTrue();}
- @GetMapping public List<Video> all(){return repo.findAll();}
- @GetMapping("/{id}") public Video get(@PathVariable Long id){return repo.findById(id).orElseThrow(()->new ResourceNotFoundException("Video not found: "+id));}
- @PostMapping public ResponseEntity<Video> create(@Valid @RequestBody Video v){v.setId(null);v.setAvailable(true);return ResponseEntity.status(201).body(repo.save(v));}
- @PutMapping("/{id}") public Video update(@PathVariable Long id,@Valid @RequestBody Video in){Video v=get(id);v.setTitle(in.getTitle());v.setDirector(in.getDirector());v.setGenre(in.getGenre());v.setAvailable(in.isAvailable());return repo.save(v);}
- @DeleteMapping("/{id}") public ResponseEntity<Void> delete(@PathVariable Long id){repo.delete(get(id));return ResponseEntity.noContent().build();}
+
+import com.midhunn.rentvideo.dto.VideoRequest;
+import com.midhunn.rentvideo.models.Video;
+import com.midhunn.rentvideo.service.VideoService;
+
+import jakarta.validation.Valid;
+
+import java.util.List;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api")
+public class VideoController {
+
+    private final VideoService service;
+
+    public VideoController(VideoService service) {
+        this.service = service;
+    }
+
+    // CUSTOMER and ADMIN
+    @GetMapping("/videos/available")
+    public List<Video> available() {
+        return service.available();
+    }
+
+    // ADMIN only
+    @PostMapping("/admin/videos")
+    public ResponseEntity<Video> create(
+            @Valid @RequestBody VideoRequest request) {
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(service.create(request));
+    }
+
+    // ADMIN only
+    @PutMapping("/admin/videos/{id}")
+    public Video update(
+            @PathVariable Long id,
+            @Valid @RequestBody VideoRequest request) {
+
+        return service.update(id, request);
+    }
+
+    // ADMIN only
+    @DeleteMapping("/admin/videos/{id}")
+    public ResponseEntity<Void> delete(
+            @PathVariable Long id) {
+
+        service.delete(id);
+
+        return ResponseEntity.noContent().build();
+    }
 }
